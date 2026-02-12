@@ -11,6 +11,7 @@ const PORT = 3000;
 
 app.get("/test-battle", (req, res) => {
     const ember = new Move("Ember", 10);
+    const tackle = new Move("Tackle", 8);
 
     const charmander = new Pokemon("Charmander", {
         hp: 39,
@@ -22,7 +23,7 @@ app.get("/test-battle", (req, res) => {
         hp: 44,
         attack: 48,
         defense: 65
-    }, []);
+    }, [tackle]);
 
     const result = attack(charmander, squirtle, ember);
 
