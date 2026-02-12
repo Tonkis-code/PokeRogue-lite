@@ -1,6 +1,8 @@
 import express from "express";
 import cors from "cors";
 import { attack } from "./engine/battle.mjs";
+import Move from "./engine/move.mjs";
+import Pokemon from "./engine/pokemon.mjs";
 
 
 
