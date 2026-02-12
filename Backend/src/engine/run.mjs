@@ -8,11 +8,12 @@ export default class Run {
         this.isOver = false;
 
         const ember = new Move("Ember", 10);
+        const scratch = new Move("Scratch", 6);
         this.player = new Pokemon("Charmander", {
             hp: 39,
             attack: 52,
             defense: 43
-        }, [ember]);
+        }, [ember, scratch]);
         
         this.currentBattle = this.generateBattle();
     }
@@ -38,7 +39,11 @@ export default class Run {
 
         if (state.isOver && state.winner === "player") {
             this.floor++;
+
+            this.healBetweenFloors();
+
             this.currentBattle = this.generateBattle();
+
             return {
                 ...state,
                 message: "Enemy defeated! Moving to the next floor.",
@@ -63,5 +68,14 @@ export default class Run {
             isOver: this.isOver,
             battle: this.currentBattle.getState()
         };
+    }
+
+    healBetweenFloors() {
+        const healAmount = Math.floor(this.player.maxhp * 0.2); // 20% heal
+
+        this.player.hp = Math.min(
+            this.player.maxHp,
+            this.player.hp + healAmount
+        );
     }
 }

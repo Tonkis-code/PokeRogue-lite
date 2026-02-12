@@ -7,9 +7,10 @@ export default class Battle {
     }
 
     calculateDamage(attacker, defender, move) {
-        const base = move.power + attacker.attack;
+        const randomFactor = Math.random() * 0.2 + 0.9; // 0.9-1.1
+        const base = (move.power + attacker.attack) * randomFactor;
         const reduced = base - defender.defense;
-        return reduced > 1 ? reduced : 1;
+        return reduced > 1 ? Math.floor(reduced) : 1;
     }
 
     takeTurn(playerMoveIndex = 0) {
