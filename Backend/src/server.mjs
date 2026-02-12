@@ -2,6 +2,11 @@ import express from "express";
 import cors from "cors";
 import { attack } from "./engine/battle.mjs";
 
+
+
+const app = express();
+const PORT = 3000;
+
 app.get("/test-battle", (req, res) => {
     const ember = new Move("Ember", 10);
 
@@ -21,9 +26,6 @@ app.get("/test-battle", (req, res) => {
 
     res.json(result);
 });
-
-const app = express();
-const PORT = 3000;
 
 app.use(cors());
 app.use(express.json());
