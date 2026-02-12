@@ -1,6 +1,6 @@
 import express from "express";
 import cors from "cors";
-import { attack } from "./engine/battle.mjs";
+import Battle from "./engine/battle.mjs";
 import Move from "./engine/move.mjs";
 import Pokemon from "./engine/pokemon.mjs";
 
@@ -25,7 +25,9 @@ app.get("/test-battle", (req, res) => {
         defense: 65
     }, [tackle]);
 
-    const result = attack(charmander, squirtle, ember);
+    const battle = new Battle(charmander, squirtle);
+
+    const result = battle.takeTurn(0);
 
     res.json(result);
 });
