@@ -1,3 +1,4 @@
+console.log("runRoutes loaded");
 import express from "express";
 import Run from "../engine/run.mjs";
 
@@ -7,21 +8,24 @@ let activeRun = null;
 
 
 
-router.post("/run/start", (req, res) => {
+router.post("/start", (req, res) => {
     activeRun = new Run();
     res.json(activeRun.getState());
 });
 
-router.post("/run/attack", (req, res) => {
+router.post("/attack", (req, res) => {
     if (!activeRun) {
         return res.status(400).json({ message: "No active run."});
     }
 
-    const result = activeRun.attack(0);
+    const { moveIndex } = req.body;
+
+    const result = activeRun.attack(moveIndex ?? 0);
+
     res.json(result);
 });
 
-router.get("/run/state", (req, res) => {
+router.get("/state", (req, res) => {
     if (!activeRun) {
         return res.status(400).json({ message: "No active run." });
     }
