@@ -1,9 +1,18 @@
-app.post("/run/start", (req, res) => {
+import express from "express";
+import Run from "../engine/run.mjs";
+
+const router = express.Router();
+
+let activeRun = null;
+
+
+
+router.post("/run/start", (req, res) => {
     activeRun = new Run();
     res.json(activeRun.getState());
 });
 
-app.post("/run/attack", (req, res) => {
+router.post("/run/attack", (req, res) => {
     if (!activeRun) {
         return res.status(400).json({ message: "No active run."});
     }
@@ -12,10 +21,12 @@ app.post("/run/attack", (req, res) => {
     res.json(result);
 });
 
-app.get("/run/state", (req, res) => {
+router.get("/run/state", (req, res) => {
     if (!activeRun) {
         return res.status(400).json({ message: "No active run." });
     }
 
     res.json(activeRun.getState());
 });
+
+export default router;
