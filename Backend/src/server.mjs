@@ -3,11 +3,12 @@ import cors from "cors";
 import Battle from "./engine/battle.mjs";
 import Move from "./engine/move.mjs";
 import Pokemon from "./engine/pokemon.mjs";
-
+import Run from "./engine/run.mjs";
 
 
 const app = express();
 const PORT = 3000;
+let activeRun = null;
 
 app.get("/test-battle", (req, res) => {
     const ember = new Move("Ember", 10);
