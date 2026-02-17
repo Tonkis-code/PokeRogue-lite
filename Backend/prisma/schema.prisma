@@ -1,0 +1,26 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           Int    @id @default(autoincrement())
+  username     String @unique
+  passwordHash String
+  metaCurrency Int    @default(0)
+  runs         Run[]
+}
+
+model Run {
+  id        Int      @id @default(autoincrement())
+  floor     Int
+  isOver    Boolean  @default(false)
+  state     Json
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
