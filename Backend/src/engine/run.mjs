@@ -78,4 +78,59 @@ export default class Run {
             this.player.hp + healAmount
         );
     }
+
+    toJson() {
+        return {
+            floor: this.floor,
+            isOver: this.isOver,
+            player: {
+                name: this.player.name,
+                hp: this.player.hp,
+                maxHp: this.player.maxHp,
+                attack: this.player.attack,
+                defense: this.player.defense,
+                moves: this.player.moves.map(m => ({ name: m.name, power: m.power })),
+            },
+            enemy: {
+                name: this.currentBattle.enemy.name,
+                hp: this.currentBattle.enemy.hp,
+                maxHp: this.currentBattle.enemy.maxHp,
+                attack: this.currentBattle.enemy.attack,
+                defense: this.currentBattle.enemy.defense,
+                moves: this.currentBattle.enemy.moves.map(m => ({ name: m.name, power: m.power })),
+            }
+
+        };
+    }
+
+    static async fromJSON(data) {
+        const { default: Pokemon } = await import("./pokemon.mjs");
+        const { default: Move } = await import("./move.mjs");
+        const { default: Battle } = await import("./battle.mjs");
+        
+        const playerMoves = data.player.moves.map(m => new Move(m.name, m.power));
+        const enemyMoves = data.enemy.moves.map(m => new Move(m.name, m.power));
+
+        const player = new Pokemon(
+            data.player.name,
+            { hp: data.player.maxHp, attack: data.player.attack, defense: data.player.defense },
+            playerMoves
+        );
+        player.hp = data.player.hp;
+
+        const enemy = new Pokemon(
+            data.enemy.name,
+            { hp: data.enemy.maxHp, attack: data.enemy.attack, defense: data.enemy.defense },
+            enemyMoves
+        );
+        enemy.hp = data.enemy.hp;
+
+        const run = Object.create(this.prototype);
+        run.floor = data.floor;
+        run.isOver = data.isOver;
+        run.player = player;
+        run.currentBattle = new Battle(player, enemy);
+
+        return run;
+    }
 }
