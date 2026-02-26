@@ -1,6 +1,7 @@
 import express from "express";
 import Run from "../engine/run.mjs";
-import { prisma } from "../db/prisma.mjs";
+import prisma from "../db/prisma.mjs";
+import { requireAuth } from "../middleware/auth.mjs";
 
 const router = express.Router();
 const USER_ID = 1; // temp until auth
@@ -17,6 +18,9 @@ async function getRunRowOrNull(runId) {
         where: { id: runId, userId: USER_ID },
     });
 }
+
+
+router.use(requireAuth);
 
 // POST /run/start  -> creates a new run, returns runId
 router.post("/start", async (req, res) => {
