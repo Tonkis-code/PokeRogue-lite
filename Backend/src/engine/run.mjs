@@ -79,7 +79,7 @@ export default class Run {
         );
     }
 
-    toJson() {
+    toJSON() {
         return {
             floor: this.floor,
             isOver: this.isOver,
