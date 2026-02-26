@@ -8,20 +8,50 @@ datasource db {
 }
 
 model User {
-  id           Int    @id @default(autoincrement())
-  username     String @unique
-  passwordHash String
-  metaCurrency Int    @default(0)
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String    
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  sessions     Session[]
   runs         Run[]
 }
 
+model Session {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  tokenHash    String   @unique
+  createdAt    DateTime @default(now())
+  expiresAt    DateTime
+  revokedAt    DateTime?
+
+  ip           String?
+  userAgent    String?
+  lastSeenAt   DateTime  @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
 model Run {
-  id        Int      @id @default(autoincrement())
-  floor     Int
-  isOver    Boolean  @default(false)
-  state     Json
-  userId    Int
-  user      User     @relation(fields: [userId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String    @id @default(cuid())
+  runId       String    @unique
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  status      RunStatus @default(ACTIVE)
+
+  floor       Int       @default(1)
+  turn        Int       @default(0)
+
+  state       Json
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@index([userId])
+  @@index([status])
 }
