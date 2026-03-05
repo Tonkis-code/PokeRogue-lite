@@ -46,72 +46,72 @@ router.get("/", async (req, res) => {
 router.post("/start", async (req, res) => {
     try {
         const run = new Run();
+        const runId = newRunId();
 
         const row = await prisma.run.create({
             data: {
+                runId,
                 userId: req.user.id,
                 status: "ACTIVE",
                 floor: run.floor,
                 turn: 0,
                 state: run.toJSON(),
             },
+            select: { runId: true },
         });
         
-        res.json({ runId: row.id, ...run.getState() });
+        res.status(201).json({ runId: row.id, ...run.getState() });
     }   catch (e) {
         res.status(500).json({ message: "Failed to start run", error: String(e) });
     }
 });
 
 // POST /run/attack     body: { runId, moveIndex }
-router.post("/attack", async (req, res ) => {
+router.post("/:runId/attack", async (req, res) => {
     try {
-        const runId = parseRunId(req.body?.runId);
+        const runId = req.params.runId;
         const moveIndex = req.body?.moveIndex ?? 0;
 
-        if (!runId) {
-            return res.status(400).json({ message: "runId is required (number)."});
-        }
-
-        const row = await getRunRowOrNull(runId, req.user.id);
+        const row = await getRunByRunIdOrNull(runId, req.user.id);
         if (!row) return res.status(404).json({ message: "Run not found." });
-        if (row.status !== "ACTIVE") {
-            return res.status(400).json({ message: "Run is already over." });
-        }
+        if (row.status !== "ACTIVE") return res.status(400).json({ message: "Run is already over." });
 
         const run = await Run.fromJSON(row.state);
         const result = run.attack(moveIndex);
 
         await prisma.run.update({
-            where: { id: row.id },
+            where: { runId: row.runId },
             data: {
                 floor: run.floor,
-                status: run.isOver ? "DEAD" : "ACTIVE",
                 turn: { increment: 1 },
+                status: run.isOver ? "DEAD" : "ACTIVE",
                 state: run.toJSON(),
             },
         });
-
-        res.json({ runId: row.id, ...result });
+        res.json({ runId: row.runId, ...result });
     }   catch (e) {
         res.status(500).json({ message: "Failed to process attack", error: String(e) });
     }
 });
 
-// GET /run/state=runId=123
-router.get("/state", async (req, res) => {
-    try {
-        const runId = parseRunId(req.query?.runId);
 
-        if(!runId) {
-            return res.status(400).json({ message: "runId query param is required (number)."});
-        }
+// GET runId
+router.get("/:runId", async (req, res) => {
+    try {
+        const runId = req.params.runId;
 
         const row = await getRunRowOrNull(runId, req.user.id);
         if (!row) return res.status(404).json({ message: "Run not found." });
 
         const run = await Run.fromJSON(row.state);
-        res.json({ runId: row.id, ...run.getState() });
+
+        res.json({
+            runId: row.runId,
+            status: row.status,
+            turn: row.turn,
+            ...run.getState()
+        });
+        
     }   catch (e) {
         res.status(500).json({ message: "Failed to get state", error: String(e) });
     }

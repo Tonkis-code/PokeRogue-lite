@@ -71,7 +71,7 @@ export default class Run {
     }
 
     healBetweenFloors() {
-        const healAmount = Math.floor(this.player.maxhp * 0.2); // 20% heal
+        const healAmount = Math.floor(this.player.maxHp * 0.2); // 20% heal
 
         this.player.hp = Math.min(
             this.player.maxHp,
