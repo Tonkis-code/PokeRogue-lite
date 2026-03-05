@@ -21,6 +21,27 @@ async function getRunRowOrNull(runId, userId) {
 
 router.use(requireAuth);
 
+// GET to check a list for runs
+router.get("/", async (req, res) => {
+    try {
+        const runs = await prisma.run.findMany({
+            where: { userId: req.user.id },
+            orderBy: { updatedAt: "desc" },
+            select: {
+                id: true,
+                floor: true,
+                status: true,
+                turn: true,
+                createdAt: true,
+                updatedAt: true,
+            },
+        });
+        res.json({ runs });
+    }   catch (e) {
+        res.status(500).json({ message: "Failed to list runs", error: String(e) });
+    }
+})
+
 // POST /run/start  -> creates a new run, returns runId
 router.post("/start", async (req, res) => {
     try {
@@ -28,9 +49,10 @@ router.post("/start", async (req, res) => {
 
         const row = await prisma.run.create({
             data: {
-                userId: USER_ID,
+                userId: req.user.id,
+                status: "ACTIVE",
                 floor: run.floor,
-                isOver: run.isOver,
+                turn: 0,
                 state: run.toJSON(),
             },
         });
@@ -53,7 +75,9 @@ router.post("/attack", async (req, res ) => {
 
         const row = await getRunRowOrNull(runId, req.user.id);
         if (!row) return res.status(404).json({ message: "Run not found." });
-        if (row.isOver) return res.status(400).json({ message: "Run is already over." });
+        if (row.status !== "ACTIVE") {
+            return res.status(400).json({ message: "Run is already over." });
+        }
 
         const run = await Run.fromJSON(row.state);
         const result = run.attack(moveIndex);
@@ -62,7 +86,8 @@ router.post("/attack", async (req, res ) => {
             where: { id: row.id },
             data: {
                 floor: run.floor,
-                isOver: run.isOver,
+                status: run.isOver ? "DEAD" : "ACTIVE",
+                turn: { increment: 1 },
                 state: run.toJSON(),
             },
         });
