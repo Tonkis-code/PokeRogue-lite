@@ -56,6 +56,16 @@ app.get("/test-battle", (req, res) => {
 
 // Auth routes (With Rate Limit)
 
+app.use(
+    "/auth",
+    rateLimit({
+        windowMs: 60_000,
+        max: 30,
+    })
+);
+
+app.use("/auth", authRoutes);
+
 app.use("/run", runRoutes);
 
 app.get("/", (req, res) => {

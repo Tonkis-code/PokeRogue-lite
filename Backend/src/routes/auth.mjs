@@ -10,7 +10,7 @@ const SESSION_DAYS = 14;
 
 router.post("/register", async (req, res) => {
     const schema = z.object({
-        email: z-string().email(),
+        email: z.email(),
         password: z.string().min(12),
     });
     const { email, password } = schema.parse(req.body);
@@ -28,13 +28,13 @@ router.post("/register", async (req, res) => {
 
 router.post("/login", async (req, res) => {
     const schema = z.object({
-        email: z.string().email(), // <- email deprecated? Check it
+        email: z.email(), // <- email deprecated? Check it
         password: z.string().min(1),
     });
     const { email, password } = schema.parse(req.body);
 
     const user = await prisma.user.findUnique({
-        where: { email: email.toLoswerCase() },
+        where: { email: email.toLowerCase() },
     });
     if (!user) return res.status(401).json({ error: "Invalid credentials" });
 
