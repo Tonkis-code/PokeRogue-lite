@@ -183,7 +183,7 @@ export default class Run {
                 };
             }
 
-            // If the enemy wins, the run ends completely
+            // If the enemy wins, the run ends completely 
             if (state.isOver && state.winner === "enemy") {
                 this.isOver = true;
 
