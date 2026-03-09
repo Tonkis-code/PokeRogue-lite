@@ -6,12 +6,20 @@ async function register() {
     const email = document.getElementById("email").value;
     const password = document.getElementById("password").value;
 
-    await fetch(`${API}/auth/register`, {
+    const res = await fetch(`${API}/auth/register`, {
         method: "POST",
         credentials: "include",
-        headers: { "Content-type": "application/json" },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password })
     });
+
+    const data = await res.json().catch(() => ({}));
+    console.log("REGISTER:", res.status, data);
+
+    if (!res.ok) {
+        alert(`Register failed: ${data.error || data.message || res.status}`);
+        return;
+    }
 
     alert("Registered!");
 }
@@ -20,12 +28,20 @@ async function login() {
     const email = document.getElementById("email").value;
     const password = document.getElementById("password").value;
 
-    await fetch(`${API}/auth/login`, {
+    const res = await fetch(`${API}/auth/login`, {
         method: "POST",
         credentials: "include",
-        header: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password })
     });
+
+    const data = await res.json().catch(() => ({}));
+    console.log("LOGIN:", res.status, data);
+
+    if (!res.ok) {
+        alert(`Login failed: ${data.error || data.message || res.status}`);
+        return;
+    }
 
     alert("Logged in!");
 }
@@ -36,10 +52,15 @@ async function startRun() {
         credentials: "include"
     });
 
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
+    console.log("START RUN:", res.status, data);
+
+    if (!res.ok) {
+        alert(`Start run failed: ${data.error || data.message || res.status}`);
+        return;
+    }
 
     runId = data.runId;
-
     renderBattle(data);
 }
 
@@ -51,7 +72,13 @@ async function attack(moveIndex) {
         body: JSON.stringify({ moveIndex })
     });
 
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
+    console.log("ATTACK:", res.status, data );
+
+    if (!res.ok) {
+        alert(`Attack failed: ${data.error || data.message || res.status}`);
+        return;
+    }
 
     renderBattle(data);
 }
