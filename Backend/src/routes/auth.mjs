@@ -9,70 +9,116 @@ const router = Router();
 const SESSION_DAYS = 14;
 
 router.post("/register", async (req, res) => {
-    const schema = z.object({
-        email: z.email(),
-        password: z.string().min(12),
-    });
-    const { email, password } = schema.parse(req.body);
+    try {
+        const schema = z.object({
+            email: z.email(),
+            password: z.string().min(12),
+        });
 
-    const user = await prisma.user.create({
-        data: {
-            email: email.toLowerCase(),
-            passwordHash: await argon2.hash(password),
-        },
-        select: { id: true, email: true },
-    });
+        const { email, password } = schema.parse(req.body);
 
-    res.status(201).json({ user });
+        const user = await prisma.user.create({
+            data: {
+                email: email.toLowerCase(),
+                passwordHash: await argon2.hash(password),
+            },
+            select: { id: true, email: true },
+        });
+
+        res.status(201).json({ user });
+    }   catch (e) {
+        console.error("REGISTER ERROR", e);
+
+        if (e?.code === "P2002") {  // What is P2002
+            return res.status(409).json({ error: "Email already exists" });     // 409 = Already exists?
+        }
+
+        res.status(500).json({
+            error: "Register failed",
+            details: String(e),
+        });
+    }
 });
 
 router.post("/login", async (req, res) => {
-    const schema = z.object({
-        email: z.email(), // <- email deprecated? Check it
-        password: z.string().min(1),
-    });
-    const { email, password } = schema.parse(req.body);
+    try {
+        const schema = z.object({
+            email: z.email(),
+            password: z.string().min(12),
+        });
 
-    const user = await prisma.user.findUnique({
-        where: { email: email.toLowerCase() },
-    });
-    if (!user) return res.status(401).json({ error: "Invalid credentials" });
+        const { email, password } = schema.parse(req.body);
 
-    const ok = await argon2.verify(user.passwordHash, password);
-    if (!ok) return res.status(401).json({ error: "Invalid credentials" });
+        const user = await prisma.user.findUnique({
+            where: { email: email.toLowerCase() },
+        });
 
-    const token = newSessionToken();
-    const tokenHash = hashToken(token);
-    const expiresAt = new Date(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000); // <- What does the * 24 xx mean? Check it
+        if (!user) {
+            return res.status(401).json({ error: "Invalid credentials" });
+        }
 
-    await prisma.session.create({
-        data: {
-            userId: user.id,
-            tokenHash,
-            expiresAt,
-            ip: req.ip,
-            userAgent: req.get("user-agent") ?? null,
-        },
-    });
+        const ok = await argon2.verify(user.passwordHash, password);
 
-    res.cookie(COOKIE_NAME, token, sessionCookieOptions());
-    res.json({ user: { id: user.id, email: user.email } });
+        if (!ok) {
+            return res.status(401).json({ error: "Invalid credentials" });
+        }
+
+        const token = newSessionToken();
+        const tokenHash = hashToken(token);
+
+        // 14 days * 24 hours * 60 minutes * 60 seconds * 1000 ms
+        const expiresAt = new Date(
+            Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000
+        );
+
+        await prisma.session.create({
+            data: {
+                userId: user.id,
+                tokenHash,
+                expiresAt,
+                ip: req.ip,
+                userAgent: req.get("user-agent") ?? null,
+            },
+        });
+
+        res.cookie(COOKIE_NAME, token, sessionCookieOptions());
+        res.json({ user: { id: user.id, email: user.email } });
+    }   catch (e) {
+        console.error("LOGIN ERROR", e);
+        res.status(500).json({
+            error: "Login failed",
+            details: String(e),
+        });
+    }
 });
 
 router.post("/logout", async (req, res) => {
-    const token = req.cookies?.[COOKIE_NAME];
-    if (token) {
-        await prisma.session.updateMany({
-            where: { tokenHash: hashToken(token), revokedAt: null },
-            data: { revokedAt: new Date() },
+    try {
+        const token = req.cookies?.[COOKIE_NAME];
+
+        if (token) {
+            await prisma.session.updateMany({
+                where: { tokenHash: hashToken(token), revokedAt: null },
+                data: { revokedAt: new Date() },
+            });
+        }
+
+        res.clearCookie(COOKIE_NAME, { path: "/" });
+        res.status(204).send();
+    }   catch (e) {
+        console.error("LOGOUT ERROR:", e);
+        res.status(500).json({
+            error: "Logout failed",
+            details: String(e),
         });
     }
-    res.clearCookie(COOKIE_NAME, { path: "/" });
-    res.status(204).send();
 });
 
 router.get("/me", (req, res) => {
-    if (!req.user) return res.status(401).json({ error: "Not authenticated" });
+    if (!req.user) {
+        return res.status(401).json({ error: "Not authenticated" });
+    }
+
     res.json({ user: req.user });
 });
 
