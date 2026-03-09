@@ -1,48 +1,54 @@
+// Imports
 import express from "express";
+import crypto from "crypto";
 import Run from "../engine/run.mjs";
 import prisma from "../db/prisma.mjs";
 import { requireAuth } from "../middleware/auth.mjs";
 
 const router = express.Router();
 
-function parseRunId(value) {
-    const n = Number.parseInt(String(value), 10);
-    return Number.isFinite(n) ? n : null;
+router.use(requireAuth);
+
+function newRunId() {
+    return crypto.randomUUID();
 }
 
 async function getRunRowOrNull(runId, userId) {
     if (!runId) return null;
 
     return prisma.run.findFirst({
-        where: { id: runId, userId: userId },
+        where: {
+            runId,
+            userId,
+        },
     });
 }
 
-
-router.use(requireAuth);
-
-// GET to check a list for runs
+// GET /run
 router.get("/", async (req, res) => {
     try {
         const runs = await prisma.run.findMany({
             where: { userId: req.user.id },
             orderBy: { updatedAt: "desc" },
             select: {
-                id: true,
+                runId: true,
                 floor: true,
-                status: true,
                 turn: true,
+                status: true,
                 createdAt: true,
                 updatedAt: true,
             },
         });
         res.json({ runs });
-    }   catch (e) {
-        res.status(500).json({ message: "Failed to list runs", error: String(e) });
+    } catch (e) {
+        res.status(500).json({
+            message: "Failed to list runs",
+            error: String(e),
+        });
     }
-})
+});
 
-// POST /run/start  -> creates a new run, returns runId
+// POST /run/start
 router.post("/start", async (req, res) => {
     try {
         const run = new Run();
@@ -55,26 +61,65 @@ router.post("/start", async (req, res) => {
                 status: "ACTIVE",
                 floor: run.floor,
                 turn: 0,
-                state: run.toJSON(),
+                state: run.toJSON()
             },
-            select: { runId: true },
+            select: {
+                runId: true,
+            },
         });
-        
-        res.status(201).json({ runId: row.id, ...run.getState() });
-    }   catch (e) {
-        res.status(500).json({ message: "Failed to start run", error: String(e) });
+
+        res.status(201).json({
+            runId: row.runId,
+            ...run.getState(),
+        });
+    } catch (e) {
+        res.status(500).json({
+            message: "Failed to start run",
+            error: String(e),
+        });
     }
 });
 
-// POST /run/attack     body: { runId, moveIndex }
+// GET /run/:runId
+router.get("/:runId", async (req, res) => {
+    try {
+        const runId = req.params.runId;
+
+        const row = await getRunRowOrNull(runId, req.user.id);
+        if (!row) {
+            return res.status(404).json({ message: "Run not found" });
+        }
+
+        const run = await Run.fromJSON(row.state);
+
+        res.json({
+            runId: row.runId,
+            status: row.status,
+            turn: row.turn,
+            ...run.getState(),
+        });
+    } catch (e) {
+        res.status(500).json({
+            message: "Failed to get state",
+            error: String(e),
+        });
+    }
+});
+
+// POST /run/:runId/attack
 router.post("/:runId/attack", async (req, res) => {
     try {
         const runId = req.params.runId;
         const moveIndex = req.body?.moveIndex ?? 0;
 
-        const row = await getRunByRunIdOrNull(runId, req.user.id);
-        if (!row) return res.status(404).json({ message: "Run not found." });
-        if (row.status !== "ACTIVE") return res.status(400).json({ message: "Run is already over." });
+        const row = await getRunRowOrNull(runId, req.user.id);
+        if (!row) {
+            return res.status(404).json({ message: "Run not found." });
+        }
+
+        if (row.status !== "ACTIVE") {
+            return res.status(400).json({ message: "Run is already over." });
+        }
 
         const run = await Run.fromJSON(row.state);
         const result = run.attack(moveIndex);
@@ -88,32 +133,40 @@ router.post("/:runId/attack", async (req, res) => {
                 state: run.toJSON(),
             },
         });
-        res.json({ runId: row.runId, ...result });
-    }   catch (e) {
-        res.status(500).json({ message: "Failed to process attack", error: String(e) });
+
+        res.json({
+            runId: row.runId,
+            ...result,
+        });
+    } catch (e) {
+        res.status(500).json({
+            message: "Failed to process attack",
+            error: String(e),
+        });
     }
 });
 
-
-// GET runId
-router.get("/:runId", async (req, res) => {
+// DELETE /run/:runId
+router.delete("/:runId", async (req, res) => {
     try {
         const runId = req.params.runId;
 
         const row = await getRunRowOrNull(runId, req.user.id);
-        if (!row) return res.status(404).json({ message: "Run not found." });
+        if (!row) {
+            return res.status(404).json({ message: "Run not found." });
+        }
 
-        const run = await Run.fromJSON(row.state);
-
-        res.json({
-            runId: row.runId,
-            status: row.status,
-            turn: row.turn,
-            ...run.getState()
+        await prisma.run.update({
+            where: { runId: row.runId },
+            data: { status: "ABANDONED" },
         });
-        
+
+        res.status(204).send();
     }   catch (e) {
-        res.status(500).json({ message: "Failed to get state", error: String(e) });
+        res.status(500).json({
+            message: "Failed to abandon run",
+            error: String(e),
+        });
     }
 });
 
