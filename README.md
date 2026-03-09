@@ -1,88 +1,77 @@
-# Pokerogue Backend
+# PokeRogue (Learning Project)
 
-This repository contains the backend (eventually frontend as well) for a roguelike Pokémon-style battle game.
-It is built with **Node.js, Express, Prisma, and PostgreSQL**, and includes a complete authentication and session system.
+A small full-stack Pokémon roguelike built to practice backend architecture, authentication, APIs, and game logic.
 
-The project was primarily created as a **learning project** to explore backend architecture, authentication, persistence, and game state management.
+The project currently includes:
 
----
+* Node.js / Express backend
+* Prisma + PostgreSQL persistence
+* Session-based authentication with cookies
+* A simple Pokémon battle engine
+* Run state persistence
+* A minimal HTML + JS frontend for testing the API
 
-# Tech Stack
-
-**Server**
-
-* Node.js
-* Express
-
-**Database**
-
-* PostgreSQL
-* Prisma ORM
-
-**Authentication**
-
-* Argon2 password hashing
-* Cookie-based sessions
-* Session persistence in database
-
-**Security**
-
-* Helmet
-* CORS
-* Express rate limiting
+This project is primarily for learning full-stack development and backend design.
 
 ---
 
-# Project Structure
+# Project Architecture
+
+The application is split into three main layers.
 
 ```
-src/
-│
-├── engine/
-│   ├── battle.mjs
-│   ├── move.mjs
-│   ├── pokemon.mjs
-│   └── run.mjs
-│
-├── routes/
-│   ├── auth.mjs
-│   └── runRoutes.mjs
-│
-├── middleware/
-│   └── auth.mjs
-│
-├── db/
-│   └── prisma.mjs
-│
-└── server.mjs
+Browser
+   ↓
+Frontend (HTML + JS)
+   ↓
+Express API
+   ↓
+Game Engine (Run / Battle / Pokemon)
+   ↓
+Prisma ORM
+   ↓
+PostgreSQL Database
 ```
 
-### engine/
+### Frontend
 
-Contains the **game logic**.
-This is independent from the HTTP server.
+A minimal testing UI that interacts with the API.
 
-Classes:
+Responsible for:
+
+* login / register
+* starting runs
+* sending attack commands
+* displaying battle state
+
+### Backend API
+
+Express routes handle:
+
+* authentication
+* session handling
+* run creation
+* battle actions
+* saving run state
+
+### Game Engine
+
+Pure JavaScript classes implementing the gameplay logic:
 
 * `Pokemon`
 * `Move`
 * `Battle`
 * `Run`
 
-The Run class manages an entire playthrough and can be serialized/deserialized using:
-
-```
-toJSON()
-fromJSON()
-```
-
-This allows runs to be saved in the database.
+The engine is independent from Express.
 
 ---
 
-### routes/auth.mjs
+# Current Features
 
-Handles authentication endpoints.
+## Authentication
+
+Session-based authentication using cookies.
 
 Routes:
 
@@ -93,269 +82,295 @@ POST /auth/logout
 GET  /auth/me
 ```
 
-Responsibilities:
+Sessions are stored in the database.
 
-* Validate input (Zod)
-* Hash passwords using Argon2
-* Verify credentials
-* Create session records
-* Set session cookie
+Authentication is required for run endpoints.
 
 ---
 
-### middleware/auth.mjs
+## Run System
 
-Authentication middleware.
+A **Run** represents one roguelike playthrough.
 
-Contains two important functions.
+Runs store:
 
-**attachUser**
+* floor
+* battle state
+* player Pokémon
+* enemy Pokémon
+* whether the run is over
 
-Runs on every request.
+Run state is stored as JSON in the database and reconstructed when loaded.
 
-Responsibilities:
-
-1. Read the `sid` cookie
-2. Hash the token
-3. Look up session in the database
-4. Attach the user to `req.user`
-
-```
-req.user = { id, email }
-```
-
----
-
-**requireAuth**
-
-Protects routes.
-
-If no authenticated user exists:
+Routes:
 
 ```
-401 Unauthorized
-```
-
-Otherwise the request proceeds.
-
----
-
-### routes/runRoutes.mjs
-
-Handles all game-related endpoints.
-
-All routes require authentication:
-
-```
-router.use(requireAuth)
-```
-
-Endpoints:
-
-```
-POST /run/start
-GET  /run
-GET  /run/:runId
-POST /run/:runId/attack
-```
-
-Responsibilities:
-
-* Create new runs
-* Load run state from database
-* Execute battle turns
-* Save updated run state
-
-The run state is stored as JSON in the database.
-
----
-
-# Authentication Flow
-
-### Register
-
-```
-POST /auth/register
-```
-
-1. Validate email/password
-2. Hash password using Argon2
-3. Create user record
-
----
-
-### Login
-
-```
-POST /auth/login
-```
-
-1. Find user by email
-2. Verify password
-3. Generate random session token
-4. Store **token hash** in database
-5. Send session cookie
-
----
-
-### Session Handling
-
-After login, every request includes the cookie:
-
-```
-sid=<session_token>
-```
-
-Middleware performs:
-
-```
-cookie -> hash -> lookup session -> attach user
-```
-
-This allows protected routes to access:
-
-```
-req.user
+GET    /run
+POST   /run/start
+GET    /run/:runId
+POST   /run/:runId/attack
+DELETE /run/:runId
 ```
 
 ---
 
-# Game Run Flow
+## Battle Engine
 
-### Start Run
+The battle system is implemented in separate classes.
 
-```
-POST /run/start
-```
+### Pokemon
 
-1. Create a new `Run` instance
-2. Serialize run state
-3. Store run in database
-4. Return runId and state
+Represents a Pokémon with:
+
+* name
+* HP
+* attack
+* defense
+* moves
+
+### Move
+
+Represents an attack with:
+
+* name
+* power
+
+### Battle
+
+Handles battle logic:
+
+* player attack
+* enemy attack
+* determining winner
+
+### Run
+
+Handles roguelike progression:
+
+* floor progression
+* generating enemies
+* healing between floors
+* managing battles
 
 ---
 
-### Attack
+# Current Gameplay Loop
 
 ```
-POST /run/:runId/attack
+Register / Login
+      ↓
+Start Run
+      ↓
+Battle Enemy
+      ↓
+Win → Next Floor
+Lose → Run Ends
 ```
 
-1. Load run from database
-2. Deserialize run state
-3. Execute attack
-4. Update run state
-5. Save new state
+Enemy Pokémon are currently selected randomly from a small hardcoded pool.
 
 ---
 
-### Get Run State
+# Example Enemy Pool
+
+For development, enemies are defined directly in `run.mjs`.
+
+Example:
 
 ```
-GET /run/:runId
+Wild Squirtle
+Wild Bulbasaur
+Wild Pidgey
+Wild Rattata
 ```
 
-Loads run from database and returns the current state.
+Stats scale slightly with floor number.
+
+Later this will be replaced with data from the PokéAPI.
 
 ---
 
-# Database Schema Overview
+# Frontend
+
+The frontend is intentionally minimal and used as a **debug UI for the backend**.
+
+Files:
+
+```
+frontend/
+  index.html
+  app.js
+```
+
+Features:
+
+* register
+* login
+* start run
+* attack buttons
+* battle state display
+
+The frontend communicates with the backend using `fetch()`.
+
+Example:
+
+```javascript
+fetch("http://localhost:3000/run/start", {
+  method: "POST",
+  credentials: "include"
+});
+```
+
+---
+
+# Database
+
+Managed using Prisma.
+
+Main models:
 
 ### User
 
 ```
 User
- ├─ id
- ├─ email
- ├─ passwordHash
- ├─ createdAt
- └─ updatedAt
+- id
+- email
+- passwordHash
+- sessions
+- runs
 ```
-
----
 
 ### Session
 
-Stores login sessions.
-
 ```
 Session
- ├─ id
- ├─ userId
- ├─ tokenHash
- ├─ expiresAt
- └─ revokedAt
+- tokenHash
+- expiresAt
+- revokedAt
+- userId
 ```
-
----
 
 ### Run
 
-Stores game runs.
-
 ```
 Run
- ├─ id
- ├─ runId
- ├─ userId
- ├─ status
- ├─ floor
- ├─ turn
- └─ state (JSON)
+- runId
+- status
+- floor
+- turn
+- state (JSON)
+- userId
 ```
 
 ---
 
-# Request Lifecycle
+# Technologies Used
+
+Backend
+
+* Node.js
+* Express
+* Prisma
+* PostgreSQL
+* Argon2 (password hashing)
+* Zod (validation)
+
+Frontend
+
+* HTML
+* Vanilla JavaScript
+* Fetch API
+
+---
+
+# Running the Project
+
+Start the backend:
 
 ```
-Client Request
-     |
-     v
-Express Server (server.mjs)
-     |
-     v
-Global Middleware
-  - helmet
-  - cors
-  - cookieParser
-  - attachUser
-     |
-     v
-Route Handler
-     |
-     v
-Prisma ORM
-     |
-     v
-PostgreSQL Database
+npm run dev
 ```
+
+Start the frontend using a local server:
+
+Example:
+
+```
+npx serve frontend
+```
+
+or
+
+```
+python -m http.server
+```
+
+Then open:
+
+```
+http://localhost:3000
+```
+
+or the frontend server URL.
+
+---
+
+# Planned Improvements
+
+## Gameplay
+
+* fix attack turn logic
+* add enemy move randomness
+* add player leveling
+* add XP system
+* add items (potions)
+
+## Game Data
+
+* integrate PokéAPI
+* load real Pokémon stats
+* add sprites
+* add abilities
+
+## Frontend
+
+* improve battle UI
+* show move names
+* HP bars
+* battle messages
+
+## Engine
+
+* Pokémon leveling
+* evolutions
+* status effects
 
 ---
 
 # Learning Goals
 
-This project was created to learn:
+This project focuses on practicing:
 
-* Backend architecture
-* Authentication and session management
-* Database persistence
-* Game state serialization
-* REST API design
-* Security practices
-
----
-
-# Future Improvements
-
-Potential future additions:
-
-* Run history
-* Leaderboards
-* Frontend client
-* Achievements
-* Spectator mode
-* Global error middleware
-* Rate limiting on login
+* backend architecture
+* authentication systems
+* REST APIs
+* database persistence
+* game engine design
+* frontend ↔ backend communication
+* debugging full stack applications
 
 ---
+
+# Status
+
+Current state:
+
+✔ Authentication working
+✔ Session cookies working
+✔ Run system working
+✔ Battle engine functional
+✔ Frontend API testing UI working
+
+Next step:
+
+Fix battle attack logic and improve battle UI.
