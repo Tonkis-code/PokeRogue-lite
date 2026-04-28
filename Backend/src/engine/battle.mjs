@@ -15,7 +15,7 @@ export default class Battle {
 
     takeTurn(playerMoveIndex = 0) {
         if (this.isOver) {
-            return { message: "Battle is already over."};
+            return { message: "Battle is already over." };
         }
 
         const playerMove = this.player.moves[playerMoveIndex];
@@ -59,7 +59,11 @@ export default class Battle {
             player: {
                 name: this.player.name,
                 hp: this.player.hp,
-                maxHp: this.player.maxHp
+                maxHp: this.player.maxHp,
+                moves: this.player.moves.map(move => ({
+                    name: move.name,
+                    power: move.power
+                }))
             },
             enemy: {
                 name: this.enemy.name,
