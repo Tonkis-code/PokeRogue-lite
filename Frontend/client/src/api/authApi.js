@@ -1,9 +1,6 @@
 const API = "http://localhost:3000";
 
-async function register() {
-    const email = document.getElementById("email").value;
-    const password = document.getElementById("password").value;
-
+export async function register(email, password) {
     const res = await fetch(`${API}/auth/register`, {
         method: "POST",
         credentials: "include",
@@ -15,16 +12,13 @@ async function register() {
     console.log("REGISTER:", res.status, data);
 
     if (!res.ok) {
-        alert(`Register failed: ${data.error || data.message || res.status}`);
-        return;
+        throw new Error(`Register failed: ${data.error || data.message || res.status}`);
     }
 
-    alert("Registered!");
+    return data;
 }
 
-async function login() {
-    const email = document.getElementById("email").value;
-    const password = document.getElementById("password").value;
+export async function login(email, password) {
 
     const res = await fetch(`${API}/auth/login`, {
         method: "POST",
@@ -37,9 +31,8 @@ async function login() {
     console.log("LOGIN:", res.status, data);
 
     if (!res.ok) {
-        alert(`Login failed: ${data.error || data.message || res.status}`);
-        return;
+        throw new Error(`Login failed: ${data.error || data.message || res.status}`);
     }
 
-    alert("Logged in!");
+    return data;
 }

@@ -2,7 +2,7 @@ const API = "http://localhost:3000";
 
 
 
-async function startRun() {
+export async function startRun() {
     const res = await fetch(`${API}/run/start`, {
         method: "POST",
         credentials: "include"
@@ -12,15 +12,13 @@ async function startRun() {
     console.log("START RUN:", res.status, data);
 
     if (!res.ok) {
-        alert(`Start run failed: ${data.error || data.message || res.status}`);
-        return;
+        throw new Error(`Start run failed: ${data.error || data.message || res.status}`);
     }
 
-    runId = data.runId;
-    renderBattle(data);
+    return data;
 }
 
-async function attack(moveIndex) {
+export async function attack(runId, moveIndex) {
     const res = await fetch(`${API}/run/${runId}/attack`, {
         method: "POST",
         credentials: "include",
@@ -32,9 +30,8 @@ async function attack(moveIndex) {
     console.log("ATTACK:", res.status, data);
 
     if (!res.ok) {
-        alert(`Attack failed: ${data.error || data.message || res.status}`);
-        return;
+        throw new Error(`Attack failed: ${data.error || data.message || res.status}`);
     }
 
-    renderBattle(data);
+    return data;
 }
