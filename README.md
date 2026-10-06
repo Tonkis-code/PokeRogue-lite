@@ -1,110 +1,91 @@
-# PokeRogue (Learning Project)
+# PokeRogue
 
-A small full-stack Pokémon roguelike built to practice backend architecture, authentication, APIs, and game logic.
+PokeRogue is a full-stack learning project inspired by Pokémon and roguelike games.
 
-The project currently includes:
+I built the project to practice backend development, authentication, REST APIs, database persistence, and separating application logic from API logic.
 
-* Node.js / Express backend
-* Prisma + PostgreSQL persistence
-* Session-based authentication with cookies
-* A simple Pokémon battle engine
-* Run state persistence
-* A minimal HTML + JS frontend for testing the API
-
-This project is primarily for learning full-stack development and backend design.
+The project is no longer under active development, but it represents an earlier stage of my full-stack/backend development journey.
 
 ---
 
-# Project Architecture
+## Tech Stack
 
-The application is split into three main layers.
+### Backend
 
-```
-Browser
-   ↓
-Frontend (HTML + JS)
-   ↓
-Express API
-   ↓
-Game Engine (Run / Battle / Pokemon)
-   ↓
-Prisma ORM
-   ↓
-PostgreSQL Database
-```
+- Node.js
+- Express
+- Prisma
+- PostgreSQL
+- Argon2
+- Zod
 
 ### Frontend
 
-A minimal testing UI that interacts with the API.
-
-Responsible for:
-
-* login / register
-* starting runs
-* sending attack commands
-* displaying battle state
-
-### Backend API
-
-Express routes handle:
-
-* authentication
-* session handling
-* run creation
-* battle actions
-* saving run state
-
-### Game Engine
-
-Pure JavaScript classes implementing the gameplay logic:
-
-* `Pokemon`
-* `Move`
-* `Battle`
-* `Run`
-
-The engine is independent from Express.
+- HTML
+- Vanilla JavaScript
+- Fetch API
 
 ---
 
-# Current Features
+## Architecture
 
-## Authentication
+The application is separated into a frontend, API, game engine, and persistence layer.
 
-Session-based authentication using cookies.
-
-Routes:
-
+```text
+Browser
+   ↓
+Frontend (HTML + JavaScript)
+   ↓
+Express API
+   ↓
+Game Engine
+   ↓
+Prisma ORM
+   ↓
+PostgreSQL
 ```
+
+The game logic is kept separate from Express so that the core gameplay system is not directly dependent on the API layer.
+
+---
+
+## Features
+
+### Authentication
+
+The project implements session-based authentication using cookies.
+
+Available authentication endpoints:
+
+```text
 POST /auth/register
 POST /auth/login
 POST /auth/logout
 GET  /auth/me
 ```
 
-Sessions are stored in the database.
-
-Authentication is required for run endpoints.
+Sessions are persisted in the database and authenticated users can create and continue runs.
 
 ---
 
-## Run System
+### Run System
 
-A **Run** represents one roguelike playthrough.
+A run represents a single roguelike playthrough.
 
-Runs store:
+Each run keeps track of:
 
-* floor
-* battle state
-* player Pokémon
-* enemy Pokémon
-* whether the run is over
+- current floor
+- battle state
+- player Pokémon
+- enemy Pokémon
+- turn state
+- whether the run has ended
 
-Run state is stored as JSON in the database and reconstructed when loaded.
+Run state is persisted as JSON in PostgreSQL and reconstructed when loaded.
 
-Routes:
+Available endpoints:
 
-```
+```text
 GET    /run
 POST   /run/start
 GET    /run/:runId
@@ -114,49 +95,27 @@ DELETE /run/:runId
 
 ---
 
-## Battle Engine
+### Battle Engine
 
-The battle system is implemented in separate classes.
+The gameplay logic is implemented using separate JavaScript classes:
 
-### Pokemon
+- `Pokemon`
+- `Move`
+- `Battle`
+- `Run`
 
-Represents a Pokémon with:
+The engine handles basic functionality such as:
 
-* name
-* HP
-* attack
-* defense
-* moves
+- player attacks
+- enemy attacks
+- battle results
+- floor progression
+- enemy generation
+- healing between floors
 
-### Move
+The basic gameplay loop is:
 
-Represents an attack with:
-
-* name
-* power
-
-### Battle
-
-Handles battle logic:
-
-* player attack
-* enemy attack
-* determining winner
-
-### Run
-
-Handles roguelike progression:
-
-* floor progression
-* generating enemies
-* healing between floors
-* managing battles
-
----
-
-# Current Gameplay Loop
-
-```
+```text
 Register / Login
       ↓
 Start Run
@@ -167,50 +126,23 @@ Win → Next Floor
 Lose → Run Ends
 ```
 
-Enemy Pokémon are currently selected randomly from a small hardcoded pool.
+Enemy Pokémon are selected from a small hardcoded pool and their stats scale with the current floor.
 
 ---
 
-# Example Enemy Pool
+## Frontend
 
-For development, enemies are defined directly in `run.mjs`.
+The frontend is intentionally minimal and primarily serves as a testing interface for the backend.
 
-Example:
+It supports:
 
-```
-Wild Squirtle
-Wild Bulbasaur
-Wild Pidgey
-Wild Rattata
-```
+- registration
+- login
+- starting runs
+- selecting attacks
+- displaying battle state
 
-Stats scale slightly with floor number.
-
-Later this will be replaced with data from the PokéAPI.
-
----
-
-# Frontend
-
-The frontend is intentionally minimal and used as a **debug UI for the backend**.
-
-Files:
-
-```
-frontend/
-  index.html
-  app.js
-```
-
-Features:
-
-* register
-* login
-* start run
-* attack buttons
-* battle state display
-
-The frontend communicates with the backend using `fetch()`.
+The frontend communicates with the Express API using `fetch()` and authenticated requests include session cookies.
 
 Example:
 
@@ -223,15 +155,15 @@ fetch("http://localhost:3000/run/start", {
 
 ---
 
-# Database
+## Database
 
-Managed using Prisma.
+Database access and schema management are handled using Prisma with PostgreSQL.
 
-Main models:
+The main models are:
 
 ### User
 
-```
+```text
 User
 - id
 - email
@@ -242,7 +174,7 @@ User
 
 ### Session
 
-```
+```text
 Session
 - tokenHash
 - expiresAt
@@ -252,7 +184,7 @@ Session
 
 ### Run
 
-```
+```text
 Run
 - runId
 - status
@@ -264,113 +196,52 @@ Run
 
 ---
 
-# Technologies Used
+## Running the Project
 
-Backend
+Install dependencies:
 
-* Node.js
-* Express
-* Prisma
-* PostgreSQL
-* Argon2 (password hashing)
-* Zod (validation)
-
-Frontend
-
-* HTML
-* Vanilla JavaScript
-* Fetch API
-
----
-
-# Running the Project
+```bash
+npm install
+```
 
 Start the backend:
 
-```
+```bash
 npm run dev
 ```
 
-Start the frontend using a local server:
+The frontend can be served using any local HTTP server.
 
-Example:
+For example:
 
-```
+```bash
 npx serve frontend
 ```
 
-or
+---
 
-```
-python -m http.server
-```
+## What I Practiced
 
-Then open:
+This project gave me practical experience with:
 
-```
-http://localhost:3000
-```
-
-or the frontend server URL.
+- building REST APIs with Express
+- PostgreSQL database persistence
+- Prisma ORM
+- session-based authentication
+- password hashing
+- cookie-based authentication
+- request validation
+- frontend/backend communication
+- separating game logic from API logic
+- designing persistent application state
+- debugging a full-stack application
 
 ---
 
-# Planned Improvements
+## Project Status
 
-## Gameplay
+**Archived / no longer under active development.**
 
-* fix attack turn logic
-* add enemy move randomness
-* add player leveling
-* add XP system
-* add items (potions)
+The project was created as a learning exercise and successfully served its purpose of giving me experience with full-stack development, backend architecture, authentication, databases, and API design.
 
-## Game Data
-
-* integrate PokéAPI
-* load real Pokémon stats
-* add sprites
-* add abilities
-
-## Frontend
-
-* improve battle UI
-* show move names
-* HP bars
-* battle messages
-
-## Engine
-
-* Pokémon leveling
-* evolutions
-* status effects
-
----
-
-# Learning Goals
-
-This project focuses on practicing:
-
-* backend architecture
-* authentication systems
-* REST APIs
-* database persistence
-* game engine design
-* frontend ↔ backend communication
-* debugging full stack applications
-
----
-
-# Status
-
-Current state:
-
-✔ Authentication working
-✔ Session cookies working
-✔ Run system working
-✔ Battle engine functional
-✔ Frontend API testing UI working
-
-Next step:
-
-Fix battle attack logic and improve battle UI.
+Rather than continuing development, I have moved on to other projects and technologies.
